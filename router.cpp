@@ -70,4 +70,31 @@ int main (int argc, char *argv[]) {
     std::cerr << "Missing config and route file content\n" << std::endl;
   }
   std::cout << "Log Level " << LOG_LEVEL << std::endl;
+
+
+  // ********************************************************************
+  // * Read configuration
+  // ********************************************************************
+  //which interfaces (eth0...) exist and ips/subnets they are assigned to
+  //which networks it canr each through next hop (route table)
+
+
+  // ********************************************************************
+  // * read packets
+  // ********************************************************************
+  //dest ip addresses
+
+  // ********************************************************************
+  // * for every dest ip (line by line of input)
+  // ********************************************************************
+  //if belongs to directly connected subnet (interfaces)
+      //send directly thru that interface to that ip
+    //else
+      //find best route by doing longest prefix match
+
+
+  // ********************************************************************
+  // * output
+  // ********************************************************************
+  //print out the decision of interface/next hop or if it is unreachebal.
 }
