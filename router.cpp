@@ -1,39 +1,35 @@
 #include "router.h"
-#include <ostream>
-#include <iostream>
-#include <sstream>
-class IPv4{
-private:
-  uint32_t ipaddr;
-public:
-  IPv4() : ipaddr(0) {}
-  IPv4(uint32_t x) : ipaddr(x) {}
-  IPv4(const std::string &s) : ipaddr(dotToInt(s)) {}
-  static uint32_t dotToInt(const std::string &s){
-    uint32_t oct[4];
-    char dot;
-    std::stringstream sd(s);
-    if(!(sd >> oct[0] >> dot >> oct[1] >> dot >> oct[2] >> dot >> oct[3])){
-      std::cerr << "bad format for string ipv4" << std::endl;
-    }
-    uint32_t convInt = (oct[0] << 24) | (oct[1] << 16) | (oct[2] << 8 | oct[3]);
-    return convInt;
-  }
 
-  std::string intToDot() const{
-    //bitwise and is &
-    uint32_t oct1 = (ipaddr >> 24) & 0xFF;
-    uint32_t oct2 = (ipaddr >> 16) & 0xFF;
-    uint32_t oct3 = (ipaddr >> 8) & 0xFF;
-    uint32_t oct4 = ipaddr & 0xFF;
-    std::string convString = std::to_string(oct1) + "." + std::to_string(oct2) + "." + std::to_string(oct3) + "." + std::to_string(oct4);
-    return convString;
+uint32_t IPv4::dotToInt(const std::string &s){
+  uint32_t oct[4];
+  char dot;
+  std::stringstream sd(s);
+  if(!(sd >> oct[0] >> dot >> oct[1] >> dot >> oct[2] >> dot >> oct[3])){
+    std::cerr << "bad format for string ipv4" << std::endl;
   }
-};
+  uint32_t convInt = (oct[0] << 24) | (oct[1] << 16) | (oct[2] << 8 | oct[3]);
+  return convInt;
+}
+
+std::string IPv4::intToDot() const{
+  //bitwise and is &
+  uint32_t oct1 = (ipaddr >> 24) & 0xFF;
+  uint32_t oct2 = (ipaddr >> 16) & 0xFF;
+  uint32_t oct3 = (ipaddr >> 8) & 0xFF;
+  uint32_t oct4 = ipaddr & 0xFF;
+  std::string convString = std::to_string(oct1) + "." + std::to_string(oct2) + "." + std::to_string(oct3) + "." + std::to_string(oct4);
+  return convString;
+}
+
+std::ostream& operator<<(std::ostream& os, const IPv4& ip){
+  return os << ip.intToDot();
+}
+
 std::string configFile;
 std::string routeFile;
 std::string inputFile = "";
 std::string outputFile = "";
+
 int main (int argc, char *argv[]) {
   
 //-c <interface configuration file>
