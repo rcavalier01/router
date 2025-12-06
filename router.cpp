@@ -1,5 +1,6 @@
 #include "router.h"
-
+#include <vector>
+#include <fstream>
 uint32_t IPv4::dotToInt(const std::string &s){
   uint32_t oct[4];
   char dot;
@@ -10,7 +11,8 @@ uint32_t IPv4::dotToInt(const std::string &s){
   uint32_t convInt = (oct[0] << 24) | (oct[1] << 16) | (oct[2] << 8 | oct[3]);
   return convInt;
 }
-
+std::vector<Interface> interfaces;
+std::vector<Route> routingTable;
 std::string IPv4::intToDot() const{
   //bitwise and is &
   uint32_t oct1 = (ipaddr >> 24) & 0xFF;
@@ -75,9 +77,16 @@ int main (int argc, char *argv[]) {
   // ********************************************************************
   // * Read configuration
   // ********************************************************************
-  //which interfaces (eth0...) exist and ips/subnets they are assigned to
+  //which interfaces (eth0...) exist and ips/subnets they have
   //which networks it canr each through next hop (route table)
 
+  std::ifstream ic(configFile);
+  if(ic.is_open()){
+    std::string wholeLine;
+    while(std::getline(ic, wholeLine)){
+      std::cout << wholeLine << std::endl;
+    }
+  }
 
   // ********************************************************************
   // * read packets

@@ -36,4 +36,15 @@ public:
   friend std::ostream& operator<<(std::ostream& os, const IPv4& ip);
 };
 
+struct Interface{
+  std::string interface;
+  IPv4 ipaddr;
+  int mask;
+  bool isIn(const IPv4 destIP) const;
+};
+struct Route{
+  IPv4 network;
+  int mask;
+  IPv4 hop;
+};
 #endif
