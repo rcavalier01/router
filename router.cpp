@@ -95,13 +95,21 @@ bool routeMatch(const IPv4& destIP, const Route& route){
 }
 
 void select_route(IPv4 destinationIP){
+  Interface* lp_directCon = nullptr;
   for(auto& interface : interfaceConfig){
     if(interfaceMatch(destinationIP, interface)){
       //yay
-      (*out) << destinationIP << " " << interface.interface << " -> " << destinationIP << std::endl;
-      return;
+      if(lp_directCon == nullptr || interface.prefix > lp_directCon->prefix){
+        lp_directCon = &interface;
+      }
     }
-  }//if not check routes
+  }
+  if(lp_directCon){
+    (*out) << destinationIP << ": " << lp_directCon->interface << " -> " << destinationIP << std::endl;
+    return;
+  }
+  
+  //if not check routes
   Route* lp_route = nullptr;
   for(auto& route : routeConfig){
     if(routeMatch(destinationIP, route)){
@@ -115,12 +123,19 @@ void select_route(IPv4 destinationIP){
     (*out) << destinationIP << ": unreachable" << std::endl;
     return;
   }
+
+  Interface* lp_nexthop = nullptr;
   for(auto& interface : interfaceConfig){
     if(interfaceMatch(lp_route->hop, interface)){
       //yay instread
-      (*out) << destinationIP << " " << interface.interface << " -> " << lp_route->hop << std::endl;
-      return;
+      if(lp_nexthop == nullptr || interface.prefix > lp_nexthop->prefix){
+        lp_nexthop = &interface;
+      }
     }
+  }
+  if(lp_nexthop){
+    (*out) << destinationIP << ": " << lp_nexthop->interface << " -> " << lp_route->hop << std::endl;
+    return;
   }
   //still????
   //unreachable
@@ -242,11 +257,11 @@ int main (int argc, char *argv[]) {
   // ****************
   // * test structure
   // ****************
-  std::cout << "Dumping Interfaces" << std::endl;
-  dumpInterfaces(interfaceConfig);
-  std::cout << "\nDumping Routes" << std::endl;
-  dumpRoutes(routeConfig);
-  std::cout << std::endl;
+  //std::cout << "Dumping Interfaces" << std::endl;
+  //dumpInterfaces(interfaceConfig);
+  //std::cout << "\nDumping Routes" << std::endl;
+  //dumpRoutes(routeConfig);
+  //std::cout << std::endl;
 
   // ********************************************************************
   // * read dest ip addresses
