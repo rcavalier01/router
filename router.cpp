@@ -14,6 +14,16 @@ uint32_t IPv4::dotToInt(const std::string &s){
 }
 std::vector<Interface> interfaceConfig;
 std::vector<Route> routingTable;
+void dumpInterfaces(const std::vector<Interface>& interfaces){
+  for(const auto& entry : interfaces){
+    std::cout << "Name: " << entry.interface << " Address: " << entry.ipaddr << " Mask: " << entry.mask << std::endl; 
+  }
+}
+void dumpRoutes(const std::vector<Route>& routes){
+  for(const auto& entry : routes){
+    std::cout << "Address: " << entry.network << " Mask: " << entry.mask << " Next Hop: " << entry.hop << std::endl; 
+  }
+}
 std::string IPv4::intToDot() const{
   //bitwise and is &
   uint32_t oct1 = (ipaddr >> 24) & 0xFF;
@@ -87,7 +97,7 @@ int main (int argc, char *argv[]) {
   if(ic.is_open()){
     std::string wholeLineC;
     while(std::getline(ic, wholeLineC)){
-      std::cout << wholeLineC << std::endl;
+      //std::cout << wholeLineC << std::endl;
       std::string ccpy = wholeLineC;
       auto startC = ccpy.find_first_not_of(" \t");
       if(ccpy[startC] == '#' || ccpy[startC] == std::string::npos){
@@ -105,7 +115,7 @@ int main (int argc, char *argv[]) {
         newInterface.mask = interface_prefix;
         interfaceConfig.push_back(newInterface);
       }else{
-        std::cout << "something wrong with regex in this line: " << wholeLineC << std::endl;
+        std::cout << "something wrong with interface regex in this line: " << wholeLineC << std::endl;
       }
     }
   }
@@ -113,9 +123,30 @@ int main (int argc, char *argv[]) {
   if(rc.is_open()){
     std::string wholeLineR;
     while(std::getline(rc, wholeLineR)){
-      std::cout << wholeLineR << std::endl;
+      //std::cout << wholeLineR << std::endl;
+      std::string rcpy = wholeLineR;
+      auto startR = rcpy.find_first_not_of(" \t");
+      if(rcpy[startR] == '#' || rcpy[startR] == std::string::npos){
+        continue;
+      }
+      std::smatch rmatch;
+      if(std::regex_match(wholeLineR, rmatch, rcReg)){
+        std::string route_network = rmatch[1];
+        int route_prefix = std::stoi(rmatch[2]);
+        std::string route_nexthop= rmatch[3];
+
+        Route newRoute;
+        newRoute.network = IPv4(route_network);
+        newRoute.mask = route_prefix;
+        newRoute.hop = IPv4(route_nexthop);
+        routingTable.push_back(newRoute);
+      }else{
+        std::cout << "something wrong with route regex in this line: " << wholeLineR << std::endl;
+      }
     }
   }
+  dumpInterfaces(interfaceConfig);
+  dumpRoutes(routingTable);
   // ********************************************************************
   // * read packets
   // ********************************************************************
@@ -125,8 +156,18 @@ int main (int argc, char *argv[]) {
     if(in.is_open()){
       std::string wholeLineIn;
       while(std::getline(in,wholeLineIn)){
+        std::string icpy = wholeLineIn;
+        auto startI = icpy.find_first_not_of(" \t");
+        if(icpy[startI] == '#' || icpy[startI] == std::string::npos){
+          continue;
+        }
         
       }
+    }
+  }else{
+    std::string wholeLineIn;
+    while(std::getline(std::cin, wholeLineIn)){
+
     }
   }
   // ********************************************************************
