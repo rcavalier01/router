@@ -45,38 +45,52 @@ std::ostream& operator<<(std::ostream& os, const IPv4& ip){
 // *print out the decision of interface/next hop or if it is unreachebal.
 // ********************************************************************
 uint32_t createMask(uint32_t prefixNum){
-  uint32_t mask;
-  uint32_t bits1 = 0;
-  bits1 = ~bits1;
-  if(prefixNum != 0){
-    mask = (bits1 << (32-prefixNum));
-  }else{
+  uint32_t mask = 0xFFFFFFFF;
+  if(prefixNum == 0){
     mask = 0;
+    return mask;
   }
+  mask = mask << (32-prefixNum);
+
+  //uint32_t bits1 = 0;
+  //bits1 = ~bits1;
+  //if(prefixNum != 0){
+  //  mask = (bits1 << (32-prefixNum));
+  //}else{
+  //  mask = 0;
+  //}
   return htonl(mask);
 }
 
 bool interfaceMatch(const IPv4& destIP,const Interface& interface){
   uint32_t interface_prefix = interface.prefix;
   uint32_t imask = createMask(interface_prefix);
-  uint32_t dip = destIP.getIpInt();
-  uint32_t iip = interface.ipaddr.getIpInt();
+  uint32_t dip = htonl(destIP.getIpInt());
+  uint32_t iip = htonl(interface.ipaddr.getIpInt());
+  //std::cout << "Testing directly connected match on interface " << interface.ipaddr.intToDot() << " with prefix " << interface_prefix << ", and destination ip " << destIP.intToDot()<< std::endl;
+  //std::cout << "Created mask from prefix: " << imask << "bitset32: " << std::bitset<32>(ntohl(imask)) <<std::endl;
   bool match = (dip & imask) == (iip & imask );
   if(match){
+    //std::cout << "Conclusion: Interface is a match" << std::endl;
     return true;
   }
+  //std::cout << "Conclusion: Interface NOT a match" << std::endl;
   return false;
 }
 
 bool routeMatch(const IPv4& destIP, const Route& route){
   uint32_t route_prefix = route.prefix;
   uint32_t rmask = createMask(route_prefix);
-  uint32_t dip = destIP.getIpInt();
-  uint32_t rip = route.network.getIpInt();
+  uint32_t dip = htonl(destIP.getIpInt());
+  uint32_t rip = htonl(route.network.getIpInt());
+  //std::cout << "Testing route match on route" << route.network.intToDot() << " with prefix " << route_prefix << ", and destination ip " << destIP.intToDot() << std::endl;
+  //std::cout << "Created mask from prefix: " << rmask << "bitset32: " << std::bitset<32>(ntohl(rmask)) <<std::endl;
   bool match = (dip & rmask) == (rip & rmask);
   if(match){
+    //std::cout << "Conclusion: Route is a match" << std::endl;
     return true;
   }
+  //std::cout << "Conclusion: Route NOT a match" << std::endl;
   return false;
 }
 
@@ -228,8 +242,11 @@ int main (int argc, char *argv[]) {
   // ****************
   // * test structure
   // ****************
-  //dumpInterfaces(interfaceConfig);
-  //dumpRoutes(routeConfig);
+  std::cout << "Dumping Interfaces" << std::endl;
+  dumpInterfaces(interfaceConfig);
+  std::cout << "\nDumping Routes" << std::endl;
+  dumpRoutes(routeConfig);
+  std::cout << std::endl;
 
   // ********************************************************************
   // * read dest ip addresses
