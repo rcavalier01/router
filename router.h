@@ -32,7 +32,7 @@ public:
   IPv4(const std::string &s) : ipaddr(dotToInt(s)) {}
   static uint32_t dotToInt(const std::string &s);
   std::string intToDot() const;
-  uint32_t toInt() const {return ipaddr;}
+  uint32_t getIpInt() const {return ipaddr;}
   friend std::ostream& operator<<(std::ostream& os, const IPv4& ip);
 };
 

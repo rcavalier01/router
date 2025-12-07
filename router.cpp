@@ -2,6 +2,8 @@
 #include <vector>
 #include <fstream>
 #include <regex>
+std::ofstream outFile;
+std::ostream* out = &std::cout;
 uint32_t IPv4::dotToInt(const std::string &s){
   uint32_t oct[4];
   char dot;
@@ -13,7 +15,7 @@ uint32_t IPv4::dotToInt(const std::string &s){
   return convInt;
 }
 std::vector<Interface> interfaceConfig;
-std::vector<Route> routingTable;
+std::vector<Route> routeConfig;
 void dumpInterfaces(const std::vector<Interface>& interfaces){
   for(const auto& entry : interfaces){
     std::cout << "Name: " << entry.interface << " Address: " << entry.ipaddr << " Prefix: " << entry.prefix << std::endl; 
@@ -57,8 +59,8 @@ uint32_t createMask(uint32_t prefixNum){
 bool interfaceMatch(const IPv4& destIP,const Interface& interface){
   uint32_t interface_prefix = interface.prefix;
   uint32_t imask = createMask(interface_prefix);
-  uint32_t dip = destIP.toInt();
-  uint32_t iip = interface.ipaddr.toInt();
+  uint32_t dip = destIP.getIpInt();
+  uint32_t iip = interface.ipaddr.getIpInt();
   bool match = (dip & imask) == (iip & imask );
   if(match){
     return true;
@@ -66,13 +68,50 @@ bool interfaceMatch(const IPv4& destIP,const Interface& interface){
   return false;
 }
 
+bool routeMatch(const IPv4& destIP, const Route& route){
+  uint32_t route_prefix = route.prefix;
+  uint32_t rmask = createMask(route_prefix);
+  uint32_t dip = destIP.getIpInt();
+  uint32_t rip = route.network.getIpInt();
+  bool match = (dip & rmask) == (rip & rmask);
+  if(match){
+    return true;
+  }
+  return false;
+}
+
 void select_route(IPv4 destinationIP){
-  for (auto& interface : interfaceConfig){
+  for(auto& interface : interfaceConfig){
     if(interfaceMatch(destinationIP, interface)){
       //yay
+      (*out) << destinationIP << " " << interface.interface << " -> " << destinationIP << std::endl;
       return;
     }
   }//if not check routes
+  Route* lp_route = nullptr;
+  for(auto& route : routeConfig){
+    if(routeMatch(destinationIP, route)){
+      if((lp_route == nullptr) || (route.prefix > lp_route->prefix)){
+        lp_route = &route;
+      }
+    }
+  }
+  if(lp_route == nullptr){
+    //if still havent found, unreachable
+    (*out) << destinationIP << ": unreachable" << std::endl;
+    return;
+  }
+  for(auto& interface : interfaceConfig){
+    if(interfaceMatch(lp_route->hop, interface)){
+      //yay instread
+      (*out) << destinationIP << " " << interface.interface << " -> " << lp_route->hop << std::endl;
+      return;
+    }
+  }
+  //still????
+  //unreachable
+  (*out) << destinationIP << ": unreachable2" << std::endl;
+  return;
 
 }
 std::string configFile;
@@ -117,9 +156,10 @@ int main (int argc, char *argv[]) {
     }
   }
   if(configFile.empty() || routeFile.empty()){
-    std::cerr << "Missing config and route file content\n" << std::endl;
+    std::cerr << "Missing config and route file content" << std::endl;
+    exit(1);
   }
-  std::cout << "Log Level " << LOG_LEVEL << std::endl;
+  //std::cout << "Log Level " << LOG_LEVEL << std::endl;
 
 
   // ********************************************************************
@@ -133,11 +173,13 @@ int main (int argc, char *argv[]) {
     std::string wholeLineC;
     while(std::getline(ic, wholeLineC)){
       //std::cout << wholeLineC << std::endl;
+      //ignore garbage
       std::string ccpy = wholeLineC;
       auto startC = ccpy.find_first_not_of(" \t");
-      if(ccpy[startC] == '#' || ccpy[startC] == std::string::npos){
+      if(startC == std::string::npos || ccpy[startC] == '#'){
         continue;
       }
+      //fill structure from reg exp
       std::smatch imatch;
       if(std::regex_match(wholeLineC, imatch, icReg)){
         std::string interface_name = imatch[1];
@@ -159,11 +201,13 @@ int main (int argc, char *argv[]) {
     std::string wholeLineR;
     while(std::getline(rc, wholeLineR)){
       //std::cout << wholeLineR << std::endl;
+      //ignore garbage
       std::string rcpy = wholeLineR;
       auto startR = rcpy.find_first_not_of(" \t");
-      if(rcpy[startR] == '#' || rcpy[startR] == std::string::npos){
+      if(startR == std::string::npos || rcpy[startR] == '#'){
         continue;
       }
+      //fill structure from reg exp
       std::smatch rmatch;
       if(std::regex_match(wholeLineR, rmatch, rcReg)){
         std::string route_network = rmatch[1];
@@ -174,20 +218,30 @@ int main (int argc, char *argv[]) {
         newRoute.network = IPv4(route_network);
         newRoute.prefix = static_cast<uint32_t>(route_prefix);
         newRoute.hop = IPv4(route_nexthop);
-        routingTable.push_back(newRoute);
+        routeConfig.push_back(newRoute);
       }else{
         std::cout << "something wrong with route regex in this line: " << wholeLineR << std::endl;
       }
     }
   }
-  // **
+
+  // ****************
   // * test structure
-  // **
+  // ****************
   //dumpInterfaces(interfaceConfig);
-  //dumpRoutes(routingTable);
+  //dumpRoutes(routeConfig);
+
   // ********************************************************************
   // * read dest ip addresses
   // ********************************************************************
+  if(!outputFile.empty()){
+    outFile.open(outputFile);
+    if(!outFile){
+      std::cerr << "Something wrong with output file" << std::endl;
+      exit(1);
+    }
+    out = &outFile;
+  }
   if(!inputFile.empty()){
     std::ifstream in(inputFile);
     if(in.is_open()){
@@ -195,10 +249,12 @@ int main (int argc, char *argv[]) {
       while(std::getline(in,wholeLineIn)){
         std::string icpy = wholeLineIn;
         auto startI = icpy.find_first_not_of(" \t");
-        if(icpy[startI] == '#' || icpy[startI] == std::string::npos){
+        if(startI == std::string::npos || icpy[startI] == '#'){
           continue;
         }
-        
+        std::string ip_line = icpy.substr(startI);
+        IPv4 readDestination = IPv4(ip_line);
+        select_route(readDestination);
       }
     }
   }else{
@@ -206,10 +262,13 @@ int main (int argc, char *argv[]) {
     while(std::getline(std::cin, wholeLineIn)){
       std::string icpy = wholeLineIn;
       auto startI = icpy.find_first_not_of(" \t");
-      if(icpy[startI] == '#' || icpy[startI] == std::string::npos){
+      if(startI == std::string::npos || icpy[startI] == '#'){
         continue;
       }
+      std::string ip_line = icpy.substr(startI);
+      IPv4 readDestination = IPv4(ip_line);
+      select_route(readDestination);
     }
   }
-  
+  return 0;
 }
