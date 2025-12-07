@@ -16,12 +16,12 @@ std::vector<Interface> interfaceConfig;
 std::vector<Route> routingTable;
 void dumpInterfaces(const std::vector<Interface>& interfaces){
   for(const auto& entry : interfaces){
-    std::cout << "Name: " << entry.interface << " Address: " << entry.ipaddr << " Mask: " << entry.mask << std::endl; 
+    std::cout << "Name: " << entry.interface << " Address: " << entry.ipaddr << " Prefix: " << entry.prefix << std::endl; 
   }
 }
 void dumpRoutes(const std::vector<Route>& routes){
   for(const auto& entry : routes){
-    std::cout << "Address: " << entry.network << " Mask: " << entry.mask << " Next Hop: " << entry.hop << std::endl; 
+    std::cout << "Address: " << entry.network << " Prefix: " << entry.prefix << " Next Hop: " << entry.hop << std::endl; 
   }
 }
 std::string IPv4::intToDot() const{
@@ -38,6 +38,43 @@ std::ostream& operator<<(std::ostream& os, const IPv4& ip){
   return os << ip.intToDot();
 }
 
+// ********************************************************************
+// *check if directly connected or do longested prefix
+// *print out the decision of interface/next hop or if it is unreachebal.
+// ********************************************************************
+uint32_t createMask(uint32_t prefixNum){
+  uint32_t mask;
+  uint32_t bits1 = 0;
+  bits1 = ~bits1;
+  if(prefixNum != 0){
+    mask = (bits1 << (32-prefixNum));
+  }else{
+    mask = 0;
+  }
+  return htonl(mask);
+}
+
+bool interfaceMatch(const IPv4& destIP,const Interface& interface){
+  uint32_t interface_prefix = interface.prefix;
+  uint32_t imask = createMask(interface_prefix);
+  uint32_t dip = destIP.toInt();
+  uint32_t iip = interface.ipaddr.toInt();
+  bool match = (dip & imask) == (iip & imask );
+  if(match){
+    return true;
+  }
+  return false;
+}
+
+void select_route(IPv4 destinationIP){
+  for (auto& interface : interfaceConfig){
+    if(interfaceMatch(destinationIP, interface)){
+      //yay
+      return;
+    }
+  }//if not check routes
+
+}
 std::string configFile;
 std::string routeFile;
 std::string inputFile = "";
@@ -86,10 +123,8 @@ int main (int argc, char *argv[]) {
 
 
   // ********************************************************************
-  // * Read configuration
+  // *read interfaces and routes
   // ********************************************************************
-  //which interfaces (eth0...) exist and ips/subnets they have
-  //which networks it canr each through next hop (route table)
   std::regex icReg(R"(\s*([a-zA-Z0-9]+)\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/(\d{1,2})\s*)");
   std::regex rcReg(R"(\s*(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/(\d{1,2})\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s*)");
 
@@ -112,7 +147,7 @@ int main (int argc, char *argv[]) {
         Interface newInterface;
         newInterface.interface = interface_name;
         newInterface.ipaddr = IPv4(interface_address);
-        newInterface.mask = interface_prefix;
+        newInterface.prefix = static_cast<uint32_t>(interface_prefix);
         interfaceConfig.push_back(newInterface);
       }else{
         std::cout << "something wrong with interface regex in this line: " << wholeLineC << std::endl;
@@ -137,7 +172,7 @@ int main (int argc, char *argv[]) {
 
         Route newRoute;
         newRoute.network = IPv4(route_network);
-        newRoute.mask = route_prefix;
+        newRoute.prefix = static_cast<uint32_t>(route_prefix);
         newRoute.hop = IPv4(route_nexthop);
         routingTable.push_back(newRoute);
       }else{
@@ -145,12 +180,14 @@ int main (int argc, char *argv[]) {
       }
     }
   }
-  dumpInterfaces(interfaceConfig);
-  dumpRoutes(routingTable);
+  // **
+  // * test structure
+  // **
+  //dumpInterfaces(interfaceConfig);
+  //dumpRoutes(routingTable);
   // ********************************************************************
-  // * read packets
+  // * read dest ip addresses
   // ********************************************************************
-  //dest ip addresses
   if(!inputFile.empty()){
     std::ifstream in(inputFile);
     if(in.is_open()){
@@ -167,20 +204,12 @@ int main (int argc, char *argv[]) {
   }else{
     std::string wholeLineIn;
     while(std::getline(std::cin, wholeLineIn)){
-
+      std::string icpy = wholeLineIn;
+      auto startI = icpy.find_first_not_of(" \t");
+      if(icpy[startI] == '#' || icpy[startI] == std::string::npos){
+        continue;
+      }
     }
   }
-  // ********************************************************************
-  // * for every dest ip (line by line of input)
-  // ********************************************************************
-  //if belongs to directly connected subnet (interfaces)
-      //send directly thru that interface to that ip
-    //else
-      //find best route by doing longest prefix match
-
-
-  // ********************************************************************
-  // * output
-  // ********************************************************************
-  //print out the decision of interface/next hop or if it is unreachebal.
+  
 }

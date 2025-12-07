@@ -39,12 +39,11 @@ public:
 struct Interface{
   std::string interface;
   IPv4 ipaddr;
-  int mask;
-  bool isIn(const IPv4 destIP) const;
+  uint32_t prefix;
 };
 struct Route{
   IPv4 network;
-  int mask;
+  uint32_t prefix;
   IPv4 hop;
 };
 #endif
