@@ -204,7 +204,6 @@ int main (int argc, char *argv[]) {
     while(std::getline(ic, wholeLineC)){
       //std::cout << wholeLineC << std::endl;
       //ignore garbage
-      //std::string ccpy = wholeLineC;
       auto startC = wholeLineC.find_first_not_of(" \t");
       if(startC == std::string::npos || wholeLineC[startC] == '#'){
         continue;
@@ -232,7 +231,6 @@ int main (int argc, char *argv[]) {
     while(std::getline(rc, wholeLineR)){
       //std::cout << wholeLineR << std::endl;
       //ignore garbage
-      //std::string rcpy = wholeLineR;
       auto startR = wholeLineR.find_first_not_of(" \t");
       if(startR == std::string::npos || wholeLineR[startR] == '#'){
         continue;
@@ -280,7 +278,6 @@ int main (int argc, char *argv[]) {
     if(in.is_open()){
       std::string wholeLineIn;
       while(std::getline(in,wholeLineIn)){
-        //std::string icpy = wholeLineIn;
         auto startI = wholeLineIn.find_first_not_of(" \t");
         if(startI == std::string::npos || wholeLineIn[startI] == '#'){
           continue;
@@ -293,12 +290,11 @@ int main (int argc, char *argv[]) {
   }else{
     std::string wholeLineIn;
     while(std::getline(std::cin, wholeLineIn)){
-      std::string icpy = wholeLineIn;
-      auto startI = icpy.find_first_not_of(" \t");
-      if(startI == std::string::npos || icpy[startI] == '#'){
+      auto startI = wholeLineIn.find_first_not_of(" \t");
+      if(startI == std::string::npos || wholeLineIn[startI] == '#'){
         continue;
       }
-      std::string ip_line = icpy.substr(startI);
+      std::string ip_line = wholeLineIn.substr(startI);
       IPv4 readDestination = IPv4(ip_line);
       select_route(readDestination);
     }
