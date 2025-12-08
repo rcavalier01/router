@@ -1,9 +1,15 @@
+//********
+//*Rachel Cavalier router
+//********
 #include "router.h"
 #include <vector>
 #include <fstream>
 #include <regex>
 std::ofstream outFile;
 std::ostream* out = &std::cout;
+//********
+//*ip conv and dump stuff
+//********
 uint32_t IPv4::dotToInt(const std::string &s){
   uint32_t oct[4];
   char dot;
@@ -41,24 +47,19 @@ std::ostream& operator<<(std::ostream& os, const IPv4& ip){
 }
 
 // ********************************************************************
-// *check if directly connected or do longested prefix
-// *print out the decision of interface/next hop or if it is unreachebal.
+// *check if directly connected or do longested prefix route
+// *print out the decision
 // ********************************************************************
 uint32_t createMask(uint32_t prefixNum){
-  uint32_t mask = 0xFFFFFFFF;
+  uint32_t mask;
+  uint32_t bits1 = 0;
+  bits1 = ~bits1;
   if(prefixNum == 0){
     mask = 0;
     return mask;
   }
-  mask = mask << (32-prefixNum);
+  mask = bits1 << (32-prefixNum);
 
-  //uint32_t bits1 = 0;
-  //bits1 = ~bits1;
-  //if(prefixNum != 0){
-  //  mask = (bits1 << (32-prefixNum));
-  //}else{
-  //  mask = 0;
-  //}
   return htonl(mask);
 }
 
@@ -137,9 +138,9 @@ void select_route(IPv4 destinationIP){
     (*out) << destinationIP << ": " << lp_nexthop->interface << " -> " << lp_route->hop << std::endl;
     return;
   }
-  //still????
+  //still???? this would be intentionally broken config
   //unreachable
-  (*out) << destinationIP << ": unreachable2" << std::endl;
+  (*out) << destinationIP << ": unreachable" << std::endl;
   return;
 
 }
@@ -203,9 +204,9 @@ int main (int argc, char *argv[]) {
     while(std::getline(ic, wholeLineC)){
       //std::cout << wholeLineC << std::endl;
       //ignore garbage
-      std::string ccpy = wholeLineC;
-      auto startC = ccpy.find_first_not_of(" \t");
-      if(startC == std::string::npos || ccpy[startC] == '#'){
+      //std::string ccpy = wholeLineC;
+      auto startC = wholeLineC.find_first_not_of(" \t");
+      if(startC == std::string::npos || wholeLineC[startC] == '#'){
         continue;
       }
       //fill structure from reg exp
@@ -231,9 +232,9 @@ int main (int argc, char *argv[]) {
     while(std::getline(rc, wholeLineR)){
       //std::cout << wholeLineR << std::endl;
       //ignore garbage
-      std::string rcpy = wholeLineR;
-      auto startR = rcpy.find_first_not_of(" \t");
-      if(startR == std::string::npos || rcpy[startR] == '#'){
+      //std::string rcpy = wholeLineR;
+      auto startR = wholeLineR.find_first_not_of(" \t");
+      if(startR == std::string::npos || wholeLineR[startR] == '#'){
         continue;
       }
       //fill structure from reg exp
@@ -279,12 +280,12 @@ int main (int argc, char *argv[]) {
     if(in.is_open()){
       std::string wholeLineIn;
       while(std::getline(in,wholeLineIn)){
-        std::string icpy = wholeLineIn;
-        auto startI = icpy.find_first_not_of(" \t");
-        if(startI == std::string::npos || icpy[startI] == '#'){
+        //std::string icpy = wholeLineIn;
+        auto startI = wholeLineIn.find_first_not_of(" \t");
+        if(startI == std::string::npos || wholeLineIn[startI] == '#'){
           continue;
         }
-        std::string ip_line = icpy.substr(startI);
+        std::string ip_line = wholeLineIn.substr(startI);
         IPv4 readDestination = IPv4(ip_line);
         select_route(readDestination);
       }
@@ -302,5 +303,6 @@ int main (int argc, char *argv[]) {
       select_route(readDestination);
     }
   }
+
   return 0;
 }
